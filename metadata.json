@@ -1,0 +1,6 @@
+{
+  "name": "XMPP MultiRoom",
+  "description": "Aplikasi XMPP Multi-User Chat (MUC) multi-room dengan fitur manajemen room, live messaging, roster, dan discovery.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
