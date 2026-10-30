@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to add file transfer (XEP-0363) and lay the groundwork for voice/video calls in the XMPP MultiRoom app. Includes UI updates for file picking and display.",
+  "updatedAt":  "2026-10-30T15:36:06.760079722Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

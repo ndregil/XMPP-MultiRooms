@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "XMPP MultiRoom"
+rootProject.name = "XMPP Call"
 
 include(":app")

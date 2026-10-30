@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
@@ -37,6 +38,7 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -99,6 +101,17 @@ fun RosterContactsScreen(
     val myPresence by viewModel.myPresence.collectAsStateWithLifecycle()
     val myStatusMessage by viewModel.myStatusMessage.collectAsStateWithLifecycle()
     val allRooms by viewModel.allRooms.collectAsStateWithLifecycle()
+
+    var selectedFileTargetJid by remember { mutableStateOf<String?>(null) }
+    
+    val filePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri: android.net.Uri? ->
+        uri?.let {
+            // In a real app, we'd need more info, but for this demo:
+            viewModel.sendFileToContact(selectedFileTargetJid ?: return@let, it)
+        }
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("ALL") } // ALL, ONLINE, OFFLINE
@@ -294,7 +307,13 @@ fun RosterContactsScreen(
                             contact = contact,
                             onRenameClick = { contactToRename = contact },
                             onDeleteClick = { contactToDelete = contact },
-                            onCapsClick = { selectedCapsContact = contact }
+                            onCapsClick = { selectedCapsContact = contact },
+                            onCallClick = { viewModel.initiate1on1Call(contact.jid, contact.displayName, "Voice") },
+                            onVideoCallClick = { viewModel.initiate1on1Call(contact.jid, contact.displayName, "Video") },
+                            onSendFileClick = {
+                                selectedFileTargetJid = contact.jid
+                                filePickerLauncher.launch("*/*")
+                            }
                         )
                     }
                 }
@@ -365,7 +384,10 @@ fun RosterContactCard(
     contact: RosterContact,
     onRenameClick: () -> Unit,
     onDeleteClick: () -> Unit,
-    onCapsClick: () -> Unit = {}
+    onCapsClick: () -> Unit = {},
+    onCallClick: () -> Unit,
+    onVideoCallClick: () -> Unit,
+    onSendFileClick: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
 
@@ -512,6 +534,51 @@ fun RosterContactCard(
                             }
                         }
                     }
+                }
+            }
+
+            // Quick Actions
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(
+                    onClick = onCallClick,
+                    enabled = contact.presence != UserPresence.OFFLINE,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Call,
+                        contentDescription = "Panggil Suara",
+                        tint = if (contact.presence != UserPresence.OFFLINE) OnlineGreen else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onVideoCallClick,
+                    enabled = contact.presence != UserPresence.OFFLINE,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Videocam,
+                        contentDescription = "Panggil Video",
+                        tint = if (contact.presence != UserPresence.OFFLINE) OnlineGreen else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                IconButton(
+                    onClick = onSendFileClick,
+                    enabled = contact.presence != UserPresence.OFFLINE,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Kirim File",
+                        tint = if (contact.presence != UserPresence.OFFLINE) MaterialTheme.colorScheme.primary else Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
                 }
             }
 

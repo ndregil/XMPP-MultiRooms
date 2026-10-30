@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
 class XmppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val database = AppDatabase.getDatabase(application)
-    val repository = XmppRepository(database, viewModelScope)
+    val repository = XmppRepository(application, database, viewModelScope)
 
     val connectionStatus: StateFlow<ConnectionStatus> = repository.connectionStatus
     val currentAccount: StateFlow<XmppAccount> = repository.currentAccount
@@ -42,6 +42,7 @@ class XmppViewModel(application: Application) : AndroidViewModel(application) {
     val isRosterLoading: StateFlow<Boolean> = repository.isRosterLoading
     val myPresence: StateFlow<UserPresence> = repository.userPresence
     val myStatusMessage: StateFlow<String> = repository.userStatusMessage
+    val currentCall: StateFlow<com.example.data.model.CallInfo?> = repository.currentCall
 
     // Search filter query
     private val _searchQuery = MutableStateFlow("")
@@ -135,11 +136,7 @@ class XmppViewModel(application: Application) : AndroidViewModel(application) {
     val currentInputText = MutableStateFlow("")
 
     init {
-        // Auto connect default account to make the app immediately interactive
-        viewModelScope.launch {
-            repository.connect(XmppAccount())
-            loadDirectory()
-        }
+        // App will wait for user to configure account in AccountConnectionScreen
     }
 
     fun selectRoom(jid: String) {
@@ -170,6 +167,56 @@ class XmppViewModel(application: Application) : AndroidViewModel(application) {
             }
             currentInputText.value = ""
         }
+    }
+
+    fun sendFile(uri: android.net.Uri, fileName: String, fileSize: Long, mimeType: String) {
+        val room = activeRoom.value ?: return
+        val myNick = room.myNickname.ifBlank { currentAccount.value.nickname }
+        viewModelScope.launch {
+            repository.sendFile(room.jid, uri, fileName, fileSize, mimeType, myNick)
+        }
+    }
+
+    fun initiateCall(callType: String) {
+        val room = activeRoom.value ?: return
+        val myNick = room.myNickname.ifBlank { currentAccount.value.nickname }
+        val targetNick = whisperTargetOccupant.value?.nickname
+        
+        viewModelScope.launch {
+            repository.initiateCall(room.jid, callType, myNick, targetNick)
+        }
+    }
+
+    fun initiate1on1Call(targetJid: String, nickname: String, callType: String) {
+        viewModelScope.launch {
+            repository.initiate1on1Call(targetJid, nickname, callType)
+        }
+    }
+
+    fun sendFileToContact(targetJid: String, uri: android.net.Uri) {
+        viewModelScope.launch {
+            repository.sendFileToContact(targetJid, uri)
+        }
+    }
+
+    fun acceptCall() {
+        repository.smackCallManager.acceptCall()
+    }
+
+    fun rejectCall() {
+        repository.smackCallManager.rejectCall()
+    }
+
+    fun endCall() {
+        repository.smackCallManager.endCall()
+    }
+
+    fun toggleMute() {
+        repository.smackCallManager.toggleMute()
+    }
+
+    fun toggleVideo() {
+        repository.smackCallManager.toggleVideo()
     }
 
     fun joinOrCreateRoom(

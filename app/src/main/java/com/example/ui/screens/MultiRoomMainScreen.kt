@@ -41,8 +41,12 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.VideoCall
+import androidx.compose.material3.AssistChip
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -84,6 +88,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.data.model.CallInfo
 import com.example.data.model.ConnectionStatus
 import com.example.data.model.RoomOccupant
 import com.example.data.model.UserPresence
@@ -140,6 +145,25 @@ fun MultiRoomMainScreen(
     val stanzaSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+
+    val filePicker = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            val cursor = context.contentResolver.query(it, null, null, null, null)
+            cursor?.use { c ->
+                if (c.moveToFirst()) {
+                    val nameIndex = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = c.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                    val name = if (nameIndex >= 0) c.getString(nameIndex) else "file"
+                    val size = if (sizeIndex >= 0) c.getLong(sizeIndex) else 0L
+                    val mimeType = context.contentResolver.getType(it) ?: "application/octet-stream"
+                    viewModel.sendFile(it, name, size, mimeType)
+                }
+            }
+        }
+    }
 
     // Auto scroll to latest message when messages change
     LaunchedEffect(messages.size) {
@@ -529,6 +553,8 @@ fun MultiRoomMainScreen(
                             inputText = currentInput,
                             onInputChange = { viewModel.currentInputText.value = it },
                             onSendMessage = { viewModel.sendMessage(it) },
+                            onAttachClick = { filePicker.launch("*/*") },
+                            onCallClick = { viewModel.initiateCall(it) },
                             whisperTarget = whisperTarget
                         )
                     }
@@ -619,6 +645,8 @@ fun MultiRoomMainScreen(
             onDismiss = { selectedCapsOccupant = null }
         )
     }
+
+    PanggilanOverlay(viewModel = viewModel)
 }
 
 @Composable
@@ -854,6 +882,8 @@ fun ChatInputBar(
     inputText: String,
     onInputChange: (String) -> Unit,
     onSendMessage: (String) -> Unit,
+    onAttachClick: () -> Unit,
+    onCallClick: (String) -> Unit,
     whisperTarget: RoomOccupant?
 ) {
     Surface(
@@ -861,54 +891,95 @@ fun ChatInputBar(
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedTextField(
-                value = inputText,
-                onValueChange = onInputChange,
+        Column {
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .testTag("chat_input_field"),
-                placeholder = {
-                    Text(
-                        text = if (whisperTarget != null) "Bisikkan ke @${whisperTarget.nickname}..." else "Ketik pesan MUC...",
-                        fontSize = 13.sp
-                    )
-                },
-                shape = RoundedCornerShape(24.dp),
-                maxLines = 4
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            IconButton(
-                onClick = {
-                    if (inputText.isNotBlank()) {
-                        onSendMessage(inputText)
-                    }
-                },
-                enabled = inputText.isNotBlank(),
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(
-                        if (inputText.isNotBlank()) {
-                            if (whisperTarget != null) Color(0xFF7C3AED) else MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.surfaceVariant
-                        }
-                    )
-                    .testTag("btn_send_message")
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.Send,
-                    contentDescription = "Kirim Pesan",
-                    tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
+                IconButton(onClick = onAttachClick) {
+                    Icon(
+                        imageVector = Icons.Default.AttachFile,
+                        contentDescription = "Lampirkan File",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = onInputChange,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("chat_input_field"),
+                    placeholder = {
+                        Text(
+                            text = if (whisperTarget != null) "Bisikkan ke @${whisperTarget.nickname}..." else "Ketik pesan MUC...",
+                            fontSize = 13.sp
+                        )
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    maxLines = 4
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                IconButton(
+                    onClick = {
+                        if (inputText.isNotBlank()) {
+                            onSendMessage(inputText)
+                        }
+                    },
+                    enabled = inputText.isNotBlank(),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (inputText.isNotBlank()) {
+                                if (whisperTarget != null) Color(0xFF7C3AED) else MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant
+                            }
+                        )
+                        .testTag("btn_send_message")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "Kirim Pesan",
+                        tint = if (inputText.isNotBlank()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Quick Call Actions
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                AssistChip(
+                    onClick = { onCallClick("Audio") },
+                    label = { Text("Panggilan Audio", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Call,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                )
+                AssistChip(
+                    onClick = { onCallClick("Video") },
+                    label = { Text("Panggilan Video", fontSize = 11.sp) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.VideoCall,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 )
             }
         }

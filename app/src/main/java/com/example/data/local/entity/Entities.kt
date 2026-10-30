@@ -66,7 +66,11 @@ data class MessageEntity(
     val messageType: MessageType,
     val status: DeliveryStatus,
     val recipientNickname: String? = null,
-    val serverMsgId: String? = null
+    val serverMsgId: String? = null,
+    val fileUrl: String? = null,
+    val fileMimeType: String? = null,
+    val fileName: String? = null,
+    val fileSize: Long? = null
 )
 
 typealias ChatMessageEntity = MessageEntity

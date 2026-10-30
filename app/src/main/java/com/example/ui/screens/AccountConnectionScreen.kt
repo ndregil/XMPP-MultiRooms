@@ -253,16 +253,7 @@ fun AccountConnectionScreen(
                     .padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                FilterChip(
-                    selected = jidInput.endsWith("@xmpp.chat.org"),
-                    onClick = {
-                        jidInput = "guest_${(100..999).random()}@xmpp.chat.org"
-                        hostInput = "xmpp.chat.org"
-                        portInput = "5222"
-                        isDemoMode = true
-                    },
-                    label = { Text("Sandbox Server", fontSize = 11.sp) }
-                )
+
                 FilterChip(
                     selected = jidInput.endsWith("@conversations.im"),
                     onClick = {
@@ -383,20 +374,6 @@ fun AccountConnectionScreen(
                             Text("Amankan transmisi data ke port 5222 / 5223", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = useTls, onCheckedChange = { useTls = it })
-                    }
-
-                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Mode Multi-Room Sandbox Live", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                            Text("Aktifkan simulasi multi-bot cerdas & multi-room responsif untuk pengujian kapan saja", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        Switch(checked = isDemoMode, onCheckedChange = { isDemoMode = it })
                     }
                 }
             }
@@ -671,7 +648,7 @@ fun AccountConnectionScreen(
                             host = hostInput.trim().ifBlank { domain },
                             port = parsedPort,
                             useTls = useTls,
-                            isDemoMode = isDemoMode,
+                            isDemoMode = false,
                             statusMessage = statusMsgInput.trim()
                         )
                         onConnect(updatedAccount, passwordInput)

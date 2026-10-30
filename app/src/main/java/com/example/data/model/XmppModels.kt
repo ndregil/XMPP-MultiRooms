@@ -16,7 +16,9 @@ enum class MessageType {
     SYSTEM_JOIN,
     SYSTEM_LEAVE,
     SYSTEM_TOPIC,
-    ACTION
+    ACTION,
+    FILE,
+    CALL_SIGNALLING
 }
 
 enum class DeliveryStatus {
@@ -56,14 +58,14 @@ enum class StanzaDirection {
 }
 
 data class XmppAccount(
-    val jid: String = "guest_user@xmpp.chat.org",
-    val username: String = "guest_user",
-    val domain: String = "xmpp.chat.org",
+    val jid: String = "",
+    val username: String = "",
+    val domain: String = "",
     val nickname: String = "AndroidExplorer",
-    val host: String = "xmpp.chat.org",
+    val host: String = "",
     val port: Int = 5222,
     val useTls: Boolean = true,
-    val isDemoMode: Boolean = true,
+    val isDemoMode: Boolean = false,
     val statusMessage: String = "Active on XMPP MultiRoom"
 )
 
@@ -271,6 +273,10 @@ data class XmppMessage(
     val messageType: MessageType = MessageType.GROUPCHAT,
     val status: DeliveryStatus = DeliveryStatus.SENT,
     val recipientNickname: String? = null, // For 1-on-1 private whisper in MUC
+    val fileUrl: String? = null,
+    val fileMimeType: String? = null,
+    val fileName: String? = null,
+    val fileSize: Long? = null,
     val senderClientCaps: ClientCaps = ClientCaps.resolveFor(senderNickname, senderJid)
 )
 

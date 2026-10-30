@@ -22,9 +22,13 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.VideoCall
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -170,11 +174,21 @@ fun MessageBubble(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Column {
-                    Text(
-                        text = message.body,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = textColor
-                    )
+                    when (message.messageType) {
+                        MessageType.FILE -> {
+                            FileMessageBubbleContent(message = message, textColor = textColor)
+                        }
+                        MessageType.CALL_SIGNALLING -> {
+                            CallSignallingBubble(message = message, textColor = textColor)
+                        }
+                        else -> {
+                            Text(
+                                text = message.body,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textColor
+                            )
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(4.dp))
 
@@ -261,6 +275,39 @@ fun SystemMessagePill(message: XmppMessage, modifier: Modifier = Modifier) {
                 fontStyle = FontStyle.Italic,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+fun CallSignallingBubble(message: XmppMessage, textColor: Color) {
+    val isVideo = message.body.lowercase().contains("video")
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(textColor.copy(alpha = 0.1f))
+            .padding(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isVideo) Icons.Default.VideoCall else Icons.Default.Call,
+            contentDescription = null,
+            tint = textColor,
+            modifier = Modifier.size(24.dp)
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = message.body,
+            color = textColor,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        TextButton(onClick = { /* Placeholder for Answer */ }) {
+            Text("Answer", color = textColor)
         }
     }
 }
